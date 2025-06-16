@@ -80,6 +80,8 @@ namespace Page
         void AttachEvent(lv_obj_t *obj);
 
         void contCreate(lv_obj_t *obj);
+        void chartContCreate(lv_obj_t *obj);
+
         void topContCreate(lv_obj_t *obj);
         void fontCreate(void);
 

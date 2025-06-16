@@ -1,6 +1,37 @@
 #include "View.h"
+#include <math.h>
+
+// 提前结构体定义，供所有函数使用
+typedef struct
+{
+    lv_obj_t *obj;
+    lv_chart_series_t *series_list[3];
+} stacked_area_chart_t;
+
+static stacked_area_chart_t stacked_area_chart;
 
 using namespace Page;
+
+#define WAVE_POINT_NUM  40
+#define WAVE_SPEED      0.15f
+#define WAVE_HEIGHT     30
+#define WAVE_BASE       50
+
+static uint32_t wave_tick = 0;
+
+static void wave_timer_cb(lv_timer_t *timer)
+{
+    stacked_area_chart_t *chart = (stacked_area_chart_t *)timer->user_data;
+    lv_chart_series_t *series = chart->series_list[0];
+    for (int i = 0; i < WAVE_POINT_NUM; i++)
+    {
+        float phase = wave_tick * WAVE_SPEED + i * 0.3f;
+        int16_t y = WAVE_BASE + (int16_t)(sinf(phase) * WAVE_HEIGHT);
+        lv_chart_set_value_by_id(chart->obj, series, i, y);
+    }
+    lv_chart_refresh(chart->obj);
+    wave_tick++;
+}
 
 void View::create(Operations &opts)
 {
@@ -12,6 +43,8 @@ void View::create(Operations &opts)
 
     // 总画布的创建
     contCreate(lv_scr_act());
+
+    chartContCreate(ui.cont);
 
     // topContCreate
     topContCreate(ui.cont);
@@ -140,6 +173,90 @@ void View::contCreate(lv_obj_t *obj)
     ui.image = img;
 }
 
+/**
+ * Callback which draws the blocks of colour under the lines
+ **/
+static void draw_event_cb(lv_event_t *e)
+{
+    lv_obj_t *obj = lv_event_get_target(e);
+
+    /*Add the faded area before the lines are drawn*/
+    lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(e);
+    if (dsc->part == LV_PART_ITEMS)
+    {
+        if (!dsc->p1 || !dsc->p2)
+            return;
+
+        /*Add a line mask that keeps the area below the line*/
+        lv_draw_mask_line_param_t line_mask_param;
+        lv_draw_mask_line_points_init(&line_mask_param, dsc->p1->x, dsc->p1->y, dsc->p2->x, dsc->p2->y,
+                                      LV_DRAW_MASK_LINE_SIDE_BOTTOM);
+        int16_t line_mask_id = lv_draw_mask_add(&line_mask_param, NULL);
+
+        /*Draw a rectangle that will be affected by the mask*/
+        lv_draw_rect_dsc_t draw_rect_dsc;
+        lv_draw_rect_dsc_init(&draw_rect_dsc);
+        draw_rect_dsc.bg_opa = LV_OPA_COVER;
+        draw_rect_dsc.bg_color = dsc->line_dsc->color;
+
+        lv_area_t a;
+        a.x1 = dsc->p1->x;
+        a.x2 = dsc->p2->x;
+        a.y1 = LV_MIN(dsc->p1->y, dsc->p2->y);
+        a.y2 = obj->coords.y2 -
+               13; /* -13 cuts off where the rectangle draws over the chart margin. Without this an area of 0 doesn't look like 0 */
+        lv_draw_rect(dsc->draw_ctx, &draw_rect_dsc, &a);
+
+        /*Remove the mask*/
+        lv_draw_mask_free_param(&line_mask_param);
+        lv_draw_mask_remove_id(line_mask_id);
+    }
+}
+
+/**
+ * Helper function to round a fixed point number
+ **/
+static int32_t round_fixed_point(int32_t n, int8_t shift)
+{
+    /* Create a bitmask to isolates the decimal part of the fixed point number */
+    int32_t mask = 1;
+    for (int32_t bit_pos = 0; bit_pos < shift; bit_pos++)
+    {
+        mask = (mask << 1) + 1;
+    }
+
+    int32_t decimal_part = n & mask;
+
+    /* Get 0.5 as fixed point */
+    int32_t rounding_boundary = 1 << (shift - 1);
+
+    /* Return either the integer part of n or the integer part + 1 */
+    return (decimal_part < rounding_boundary) ? (n & ~mask) : ((n >> shift) + 1) << shift;
+}
+
+void View::chartContCreate(lv_obj_t *obj)
+{
+    stacked_area_chart.obj = lv_chart_create(obj);
+    lv_obj_set_size(stacked_area_chart.obj, 200, 150);
+    lv_obj_center(stacked_area_chart.obj);
+    lv_chart_set_type(stacked_area_chart.obj, LV_CHART_TYPE_LINE);
+    lv_chart_set_div_line_count(stacked_area_chart.obj, 0, 0); // 关闭网格线
+    lv_obj_add_event_cb(stacked_area_chart.obj, draw_event_cb, LV_EVENT_DRAW_PART_BEGIN, NULL);
+    // 关闭Y轴刻度和标签
+    lv_chart_set_axis_tick(stacked_area_chart.obj, LV_CHART_AXIS_PRIMARY_Y, 0, 0, 0, 0, false, 0);
+    lv_chart_set_axis_tick(stacked_area_chart.obj, LV_CHART_AXIS_PRIMARY_X, 0, 0, 0, 0, false, 0);
+    // 关闭点显示
+    lv_obj_set_style_size(stacked_area_chart.obj, 0, LV_PART_INDICATOR);
+    // 填充波浪下方区域，颜色加深且不透明
+    lv_obj_set_style_opa(stacked_area_chart.obj, LV_OPA_COVER, LV_PART_ITEMS);
+    lv_obj_set_style_bg_opa(stacked_area_chart.obj, LV_OPA_COVER, LV_PART_ITEMS);
+    lv_obj_set_style_bg_color(stacked_area_chart.obj, lv_color_hex(0x003366), LV_PART_ITEMS);
+    // 只用一条series
+    stacked_area_chart.series_list[0] = lv_chart_add_series(stacked_area_chart.obj, lv_palette_main(LV_PALETTE_BLUE), LV_CHART_AXIS_PRIMARY_Y);
+    lv_chart_set_point_count(stacked_area_chart.obj, WAVE_POINT_NUM);
+    lv_timer_create(wave_timer_cb, 30, &stacked_area_chart); // 30ms刷新一次
+}
+
 void View::topContCreate(lv_obj_t *obj)
 {
     lv_obj_t *cont = lv_obj_create(obj);
@@ -199,7 +316,7 @@ void View::topContCreate(lv_obj_t *obj)
     lv_obj_set_style_text_color(label, lv_color_black(), 0);
     lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-    lv_label_set_text_fmt(label, "%s", "about"); 
+    lv_label_set_text_fmt(label, "%s", "about");
 }
 
 lv_obj_t *View::btnCreate(lv_obj_t *par, const void *img_src, lv_coord_t x_ofs, lv_coord_t y_ofs, lv_coord_t w, lv_coord_t h)
