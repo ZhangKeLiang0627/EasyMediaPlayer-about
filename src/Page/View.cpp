@@ -5,19 +5,11 @@
 using namespace SmoothUIToolKit;
 using namespace Page;
 
-#define WAVE_POINT_NUM 400
-// #define WAVE_SPEED 0.15f
-// #define WAVE_HEIGHT 30
-// #define WAVE_BASE 50
+// #define WAVE_POINT_NUM 240
 
 static void wave_timer_cb(lv_timer_t *timer)
 {
     View *instance = (View *)timer->user_data;
-
-    auto current_time = std::chrono::high_resolution_clock::now();
-    auto duration_in_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(current_time.time_since_epoch());
-
-    instance->currentTime = duration_in_milliseconds.count();
 
     lv_chart_series_t *series = instance->stacked_area_chart.series_list[0];
 
@@ -28,18 +20,13 @@ static void wave_timer_cb(lv_timer_t *timer)
     instance->wave_generator.update();
 
     int wave_x = 0;
-    int wave_y_offset = 0;
+    // int wave_y_offset = 0;
 
     instance->wave_generator.getWaveA().peekAll([&](const int &wave_y)
                                                 {
-            wave_y_offset = wave_y + instance->transition.getYTransition().getValue();
+            // wave_y_offset = wave_y + instance->transition.getYTransition().getValue();
             
-            // printf("wave_y_offset: %d\n", instance->transition.getYTransition().getValue());
-
-            // HAL::GetCanvas()->drawFastVLine(
-            //     wave_x, wave_y_offset, 150 - wave_y_offset, _theme.colorWaveA);
-
-        lv_chart_set_value_by_id(instance->stacked_area_chart.obj, series, wave_x, 50 - wave_y_offset);
+        lv_chart_set_value_by_id(instance->stacked_area_chart.obj, series, wave_x, 50 - wave_y);
             wave_x++; });
 
     lv_chart_refresh(instance->stacked_area_chart.obj);
@@ -56,7 +43,7 @@ void View::create(Operations &opts)
     // 总画布的创建
     contCreate(lv_scr_act());
 
-    chartContCreate(ui.cont);
+    // chartContCreate(ui.cont);
 
     // topContCreate
     topContCreate(ui.cont);
@@ -225,58 +212,41 @@ static void draw_event_cb(lv_event_t *e)
     }
 }
 
-/**
- * Helper function to round a fixed point number
- **/
-static int32_t round_fixed_point(int32_t n, int8_t shift)
-{
-    /* Create a bitmask to isolates the decimal part of the fixed point number */
-    int32_t mask = 1;
-    for (int32_t bit_pos = 0; bit_pos < shift; bit_pos++)
-    {
-        mask = (mask << 1) + 1;
-    }
-
-    int32_t decimal_part = n & mask;
-
-    /* Get 0.5 as fixed point */
-    int32_t rounding_boundary = 1 << (shift - 1);
-
-    /* Return either the integer part of n or the integer part + 1 */
-    return (decimal_part < rounding_boundary) ? (n & ~mask) : ((n >> shift) + 1) << shift;
-}
-
 void View::chartContCreate(lv_obj_t *obj)
 {
     // Wave transition
     transition.getYTransition().setDuration(600);
     transition.getYTransition().setTransitionPath(EasingPath::easeOutBack);
+
     // Wave gen
-    wave_generator.init(480);
+    wave_generator.init(240);
 
     stacked_area_chart.obj = lv_chart_create(obj);
-    lv_obj_set_size(stacked_area_chart.obj, 480, 240);
+    lv_obj_set_size(stacked_area_chart.obj, 240, 240);
     lv_obj_center(stacked_area_chart.obj);
     lv_chart_set_type(stacked_area_chart.obj, LV_CHART_TYPE_LINE);
 
     // 关闭网格线
     lv_chart_set_div_line_count(stacked_area_chart.obj, 0, 0);
-    // fill under the lines
-    lv_obj_add_event_cb(stacked_area_chart.obj, draw_event_cb, LV_EVENT_DRAW_PART_BEGIN, NULL);
 
-    // 关闭Y/X轴刻度和标签
-    lv_chart_set_axis_tick(stacked_area_chart.obj, LV_CHART_AXIS_PRIMARY_Y, 0, 0, 0, 0, false, 0);
-    lv_chart_set_axis_tick(stacked_area_chart.obj, LV_CHART_AXIS_PRIMARY_X, 0, 0, 0, 0, false, 0);
-    // 关闭点显示
-    lv_obj_set_style_size(stacked_area_chart.obj, 0, LV_PART_INDICATOR);
+    // // 关闭Y/X轴刻度和标签
+    // lv_chart_set_axis_tick(stacked_area_chart.obj, LV_CHART_AXIS_PRIMARY_Y, 0, 0, 0, 0, false, 0);
+    // lv_chart_set_axis_tick(stacked_area_chart.obj, LV_CHART_AXIS_PRIMARY_X, 0, 0, 0, 0, false, 0);
+    // // 关闭点显示
+    // lv_obj_set_style_size(stacked_area_chart.obj, 0, LV_PART_INDICATOR);
+
     // 填充波浪下方区域，颜色加深且不透明
-    lv_obj_set_style_opa(stacked_area_chart.obj, LV_OPA_COVER, LV_PART_ITEMS);
-    lv_obj_set_style_bg_opa(stacked_area_chart.obj, LV_OPA_COVER, LV_PART_ITEMS);
+    lv_obj_set_style_opa(stacked_area_chart.obj, LV_OPA_60, LV_PART_ITEMS);
+    lv_obj_set_style_bg_opa(stacked_area_chart.obj, LV_OPA_60, LV_PART_ITEMS);
     lv_obj_set_style_bg_color(stacked_area_chart.obj, lv_color_hex(0x003366), LV_PART_ITEMS);
     // 只用一条series
     stacked_area_chart.series_list[0] = lv_chart_add_series(stacked_area_chart.obj, lv_palette_main(LV_PALETTE_BLUE), LV_CHART_AXIS_PRIMARY_Y);
-    lv_chart_set_point_count(stacked_area_chart.obj, WAVE_POINT_NUM);
-    lv_timer_create(wave_timer_cb, 15, this); // 30ms刷新一次
+    lv_chart_set_point_count(stacked_area_chart.obj, 215);
+
+    // set sine wave data
+    lv_timer_create(wave_timer_cb, 10, this);
+    // fill under the lines
+    lv_obj_add_event_cb(stacked_area_chart.obj, draw_event_cb, LV_EVENT_DRAW_PART_BEGIN, NULL);
 }
 
 void View::topContCreate(lv_obj_t *obj)
