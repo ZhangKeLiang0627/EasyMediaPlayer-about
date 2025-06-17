@@ -1,36 +1,48 @@
 #include "View.h"
 #include <math.h>
+#include <chrono>
 
-// 提前结构体定义，供所有函数使用
-typedef struct
-{
-    lv_obj_t *obj;
-    lv_chart_series_t *series_list[3];
-} stacked_area_chart_t;
-
-static stacked_area_chart_t stacked_area_chart;
-
+using namespace SmoothUIToolKit;
 using namespace Page;
 
-#define WAVE_POINT_NUM  40
-#define WAVE_SPEED      0.15f
-#define WAVE_HEIGHT     30
-#define WAVE_BASE       50
-
-static uint32_t wave_tick = 0;
+#define WAVE_POINT_NUM 400
+// #define WAVE_SPEED 0.15f
+// #define WAVE_HEIGHT 30
+// #define WAVE_BASE 50
 
 static void wave_timer_cb(lv_timer_t *timer)
 {
-    stacked_area_chart_t *chart = (stacked_area_chart_t *)timer->user_data;
-    lv_chart_series_t *series = chart->series_list[0];
-    for (int i = 0; i < WAVE_POINT_NUM; i++)
-    {
-        float phase = wave_tick * WAVE_SPEED + i * 0.3f;
-        int16_t y = WAVE_BASE + (int16_t)(sinf(phase) * WAVE_HEIGHT);
-        lv_chart_set_value_by_id(chart->obj, series, i, y);
-    }
-    lv_chart_refresh(chart->obj);
-    wave_tick++;
+    View *instance = (View *)timer->user_data;
+
+    auto current_time = std::chrono::high_resolution_clock::now();
+    auto duration_in_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(current_time.time_since_epoch());
+
+    instance->currentTime = duration_in_milliseconds.count();
+
+    lv_chart_series_t *series = instance->stacked_area_chart.series_list[0];
+
+    instance->transition.update((TimeSize_t)instance->currentTime);
+
+    // Make it faster
+    instance->wave_generator.update();
+    instance->wave_generator.update();
+
+    int wave_x = 0;
+    int wave_y_offset = 0;
+
+    instance->wave_generator.getWaveA().peekAll([&](const int &wave_y)
+                                                {
+            wave_y_offset = wave_y + instance->transition.getYTransition().getValue();
+            
+            // printf("wave_y_offset: %d\n", instance->transition.getYTransition().getValue());
+
+            // HAL::GetCanvas()->drawFastVLine(
+            //     wave_x, wave_y_offset, 150 - wave_y_offset, _theme.colorWaveA);
+
+        lv_chart_set_value_by_id(instance->stacked_area_chart.obj, series, wave_x, 50 - wave_y_offset);
+            wave_x++; });
+
+    lv_chart_refresh(instance->stacked_area_chart.obj);
 }
 
 void View::create(Operations &opts)
@@ -236,13 +248,23 @@ static int32_t round_fixed_point(int32_t n, int8_t shift)
 
 void View::chartContCreate(lv_obj_t *obj)
 {
+    // Wave transition
+    transition.getYTransition().setDuration(600);
+    transition.getYTransition().setTransitionPath(EasingPath::easeOutBack);
+    // Wave gen
+    wave_generator.init(480);
+
     stacked_area_chart.obj = lv_chart_create(obj);
-    lv_obj_set_size(stacked_area_chart.obj, 200, 150);
+    lv_obj_set_size(stacked_area_chart.obj, 480, 240);
     lv_obj_center(stacked_area_chart.obj);
     lv_chart_set_type(stacked_area_chart.obj, LV_CHART_TYPE_LINE);
-    lv_chart_set_div_line_count(stacked_area_chart.obj, 0, 0); // 关闭网格线
+
+    // 关闭网格线
+    lv_chart_set_div_line_count(stacked_area_chart.obj, 0, 0);
+    // fill under the lines
     lv_obj_add_event_cb(stacked_area_chart.obj, draw_event_cb, LV_EVENT_DRAW_PART_BEGIN, NULL);
-    // 关闭Y轴刻度和标签
+
+    // 关闭Y/X轴刻度和标签
     lv_chart_set_axis_tick(stacked_area_chart.obj, LV_CHART_AXIS_PRIMARY_Y, 0, 0, 0, 0, false, 0);
     lv_chart_set_axis_tick(stacked_area_chart.obj, LV_CHART_AXIS_PRIMARY_X, 0, 0, 0, 0, false, 0);
     // 关闭点显示
@@ -254,7 +276,7 @@ void View::chartContCreate(lv_obj_t *obj)
     // 只用一条series
     stacked_area_chart.series_list[0] = lv_chart_add_series(stacked_area_chart.obj, lv_palette_main(LV_PALETTE_BLUE), LV_CHART_AXIS_PRIMARY_Y);
     lv_chart_set_point_count(stacked_area_chart.obj, WAVE_POINT_NUM);
-    lv_timer_create(wave_timer_cb, 30, &stacked_area_chart); // 30ms刷新一次
+    lv_timer_create(wave_timer_cb, 15, this); // 30ms刷新一次
 }
 
 void View::topContCreate(lv_obj_t *obj)

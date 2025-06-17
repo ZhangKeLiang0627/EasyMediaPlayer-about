@@ -4,6 +4,7 @@
 #include "../utils/lv_ext/lv_obj_ext_func.h"
 #include "../utils/lv_ext/lv_anim_timeline_wrapper.h"
 #include <functional>
+#include "../utils/smooth_ui_toolkit/src/smooth_ui_toolkit.h"
 
 namespace Page
 {
@@ -36,6 +37,12 @@ namespace Page
         SetFullScreenCb setFullScreenCb; // 设置视频是否全屏回调函数
     };
 
+    typedef struct
+    {
+        lv_obj_t *obj;
+        lv_chart_series_t *series_list[3];
+    } stacked_area_chart_t;
+
     class View
     {
     private:
@@ -43,6 +50,13 @@ namespace Page
         bool _isPlaying = false;
 
     public:
+        SmoothUIToolKit::Transition3D transition;
+        SmoothUIToolKit::Misc::WaterWaveGenerator wave_generator;
+
+        stacked_area_chart_t stacked_area_chart;
+
+        uint32_t currentTime = 0;
+
         struct
         {
             lv_obj_t *cont;
@@ -53,7 +67,7 @@ namespace Page
                 lv_ft_info_t font16; // 自定义字体
                 lv_ft_info_t font20; // 自定义字体
             } fontCont;
-           
+
             struct
             {
                 lv_obj_t *cont;
@@ -89,7 +103,6 @@ namespace Page
         static void buttonEventHandler(lv_event_t *event);
 
         lv_obj_t *btnCreate(lv_obj_t *par, const void *img_src, lv_coord_t x_ofs, lv_coord_t y_ofs, lv_coord_t w = 50, lv_coord_t h = 50);
-   
     };
 
 }
