@@ -70,8 +70,10 @@ namespace Page
             {
                 lv_obj_t *cont;
                 lv_obj_t *barBtn;
+                lv_obj_t *showBtn;
 
                 lv_obj_t *logoImage;
+                lv_obj_t *objectionImage;
 
             } bottomCont;
 

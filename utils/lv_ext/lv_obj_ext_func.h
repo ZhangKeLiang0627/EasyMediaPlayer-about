@@ -30,6 +30,7 @@
 
 void lv_obj_set_opa_scale(lv_obj_t *obj, int16_t opa);
 void lv_obj_set_img_opa_scale(lv_obj_t *obj, int16_t opa);
+void lv_obj_set_bg_img_opa_scale(lv_obj_t *obj, int16_t opa);
 void lv_obj_set_shadow_opa_scale(lv_obj_t *obj, int16_t opa);
 void lv_label_set_opa_scale(lv_obj_t *obj, int16_t opa);
 int16_t lv_obj_get_opa_scale(lv_obj_t *obj);

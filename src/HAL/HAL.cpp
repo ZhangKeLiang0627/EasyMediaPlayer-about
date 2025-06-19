@@ -1,4 +1,5 @@
 #include "HAL.h"
+#include "ResourcePool.h"
 
 /* File system funtion */
 static void *fs_open(lv_fs_drv_t *drv, const char *path, lv_fs_mode_t mode);
@@ -80,6 +81,9 @@ void HAL::Init(void)
     fs_drv.tell_cb = fs_tell;
 
     lv_fs_drv_register(&fs_drv);
+
+    /* Initialize resource pool */
+    ResourcePool::Init();
 
     // 注册退出回调函数
     install_signal_handler();

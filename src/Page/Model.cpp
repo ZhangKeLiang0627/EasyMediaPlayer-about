@@ -35,7 +35,7 @@ Model::Model(std::function<void(void)> exitCb, pthread_mutex_t &mutex)
     uiOpts.setRotateCb = std::bind(&Model::setRotate, this, std::placeholders::_1);
     uiOpts.setFullScreenCb = std::bind(&Model::setFullScreen, this, std::placeholders::_1);
 
-    _view.create(uiOpts);
+     _view.create(uiOpts);
 
     // 这里设置一个1000ms的定时器，软定时器，用于在onTimerUpdate里update
     _timer = lv_timer_create(onTimerUpdate, 1000, this);

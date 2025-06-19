@@ -1,4 +1,5 @@
 #include "View.h"
+#include "ResourcePool.h"
 
 using namespace Page;
 
@@ -23,6 +24,7 @@ void View::create(Operations &opts)
     AttachEvent(lv_scr_act());
     lv_obj_add_event_cb(ui.topCont.cancelBtn, buttonEventHandler, LV_EVENT_ALL, this);
     lv_obj_add_event_cb(ui.bottomCont.barBtn, buttonEventHandler, LV_EVENT_ALL, this);
+    lv_obj_add_event_cb(ui.bottomCont.showBtn, buttonEventHandler, LV_EVENT_ALL, this);
 
     /* Transparent background style */
     static lv_style_t style_scr_act;
@@ -71,6 +73,7 @@ void View::create(Operations &opts)
             ANIM_DEF(50, ui.bottomCont.cont, height, lv_obj_get_height(ui.bottomCont.cont), 240),
             ANIM_DEF(100, ui.bottomCont.cont, opa_scale, LV_OPA_TRANSP, LV_OPA_80),
             ANIM_DEF(0, ui.bottomCont.barBtn, opa_scale, LV_OPA_COVER, LV_OPA_TRANSP),
+            ANIM_DEF(0, ui.bottomCont.showBtn, bg_img_opa_scale, LV_OPA_TRANSP, LV_OPA_COVER),
             ANIM_DEF(0, ui.bottomCont.barBtn, width, lv_obj_get_width(ui.bottomCont.barBtn), 0),
 
             LV_ANIM_TIMELINE_WRAPPER_END // 这个标志着结构体成员结束，不能省略，在下面函数lv_anim_timeline_add_wrapper的轮询中做判断条件
@@ -189,6 +192,41 @@ void View::bottomContCreate(lv_obj_t *obj)
     lv_obj_set_style_bg_color(btn, lv_color_hex(0x282a3a), LV_STATE_PRESSED); // 设置按钮在被按下时的颜色
     lv_obj_set_style_bg_color(btn, lv_color_hex(0x282a3a), LV_STATE_FOCUSED); // 设置按钮在被按下时的颜色
     ui.bottomCont.barBtn = btn;
+
+    // 设置showBtn
+    btn = lv_obj_create(cont);
+    lv_obj_remove_style_all(btn);
+    lv_obj_clear_flag(btn, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_opa(btn, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_bg_img_opa(btn, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_img_src(btn, ResourcePool::GetImage("lawyer_close"), LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_img_src(btn, ResourcePool::GetImage("lawyer_open"), LV_STATE_PRESSED);
+    lv_obj_align(btn, LV_ALIGN_BOTTOM_LEFT, 20, -20);
+
+    ui.bottomCont.showBtn = btn;
+
+    // 设置logo
+    lv_obj_t *logoImage = lv_obj_create(cont);
+    lv_obj_remove_style_all(logoImage);
+    lv_obj_clear_flag(logoImage, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_opa(logoImage, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_bg_img_opa(logoImage, LV_OPA_COVER, 0);
+    lv_obj_add_flag(logoImage, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_style_bg_img_src(logoImage, ResourcePool::GetImage("bootlogo"), LV_STATE_DEFAULT);
+    lv_obj_align(logoImage, LV_ALIGN_CENTER, 20, -40);
+    // lv_obj_set_style_radius(logoImage, 5, LV_PART_MAIN);
+    ui.bottomCont.logoImage = logoImage;
+
+    // 设置objectionImage
+    lv_obj_t *image = lv_obj_create(cont);
+    lv_obj_remove_style_all(image);
+    lv_obj_clear_flag(image, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_opa(image, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_bg_img_opa(image, LV_OPA_COVER, 0);
+    lv_obj_add_flag(image, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_style_bg_img_src(image, ResourcePool::GetImage("objection"), LV_STATE_DEFAULT);
+    lv_obj_align(image, LV_ALIGN_TOP_LEFT, 20, 0);
+    ui.bottomCont.objectionImage = image;
 }
 
 void View::topContCreate(lv_obj_t *obj)
@@ -306,20 +344,38 @@ void View::buttonEventHandler(lv_event_t *event)
         }
         else if (obj == instance->ui.bottomCont.barBtn)
         {
-            printf("[View] bottomCont barBtn clicked!\n");
+            // printf("[View] bottomCont barBtn clicked!\n");
         }
     }
     else if (code == LV_EVENT_LONG_PRESSED)
     {
         if (obj == instance->ui.bottomCont.barBtn)
         {
-            printf("[View] bottomCont barBtn long pressed!\n");
+            // printf("[View] bottomCont barBtn long pressed!\n");
             if (instance->ui.isBottomContCollapsed)
             {
                 instance->appearAnimBottom(false);
 
                 // lv_obj_add_flag(instance->ui.bottomCont.barBtn, LV_OBJ_FLAG_HIDDEN);
             }
+        }
+    }
+    else if (code == LV_EVENT_PRESSED)
+    {
+        if (obj == instance->ui.bottomCont.showBtn)
+        {
+            printf("[View] bottomCont showBtn pressed!\n");
+            lv_obj_clear_flag(instance->ui.bottomCont.logoImage, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_clear_flag(instance->ui.bottomCont.objectionImage, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+    else if (code == LV_EVENT_RELEASED)
+    {
+        if (obj == instance->ui.bottomCont.showBtn)
+        {
+            printf("[View] bottomCont showBtn released!\n");
+            lv_obj_add_flag(instance->ui.bottomCont.logoImage, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(instance->ui.bottomCont.objectionImage, LV_OBJ_FLAG_HIDDEN);
         }
     }
 }

@@ -32,6 +32,11 @@ void lv_obj_set_img_opa_scale(lv_obj_t *obj, int16_t opa)
     lv_obj_set_style_img_opa(obj, (lv_opa_t)opa, LV_PART_MAIN);
 }
 
+void lv_obj_set_bg_img_opa_scale(lv_obj_t *obj, int16_t opa)
+{
+    lv_obj_set_style_bg_img_opa(obj, (lv_opa_t)opa, LV_PART_MAIN);
+}
+
 void lv_obj_set_shadow_opa_scale(lv_obj_t *obj, int16_t opa)
 {
     lv_obj_set_style_shadow_opa(obj, (lv_opa_t)opa, LV_PART_MAIN);
