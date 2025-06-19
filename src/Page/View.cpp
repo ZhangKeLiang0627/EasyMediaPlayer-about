@@ -1,36 +1,6 @@
 #include "View.h"
-#include <math.h>
-#include <chrono>
 
-using namespace SmoothUIToolKit;
 using namespace Page;
-
-// #define WAVE_POINT_NUM 240
-
-static void wave_timer_cb(lv_timer_t *timer)
-{
-    View *instance = (View *)timer->user_data;
-
-    lv_chart_series_t *series = instance->stacked_area_chart.series_list[0];
-
-    instance->transition.update((TimeSize_t)instance->currentTime);
-
-    // Make it faster
-    instance->wave_generator.update();
-    instance->wave_generator.update();
-
-    int wave_x = 0;
-    // int wave_y_offset = 0;
-
-    instance->wave_generator.getWaveA().peekAll([&](const int &wave_y)
-                                                {
-            // wave_y_offset = wave_y + instance->transition.getYTransition().getValue();
-            
-        lv_chart_set_value_by_id(instance->stacked_area_chart.obj, series, wave_x, 50 - wave_y);
-            wave_x++; });
-
-    lv_chart_refresh(instance->stacked_area_chart.obj);
-}
 
 void View::create(Operations &opts)
 {
@@ -43,7 +13,8 @@ void View::create(Operations &opts)
     // 总画布的创建
     contCreate(lv_scr_act());
 
-    // chartContCreate(ui.cont);
+    // bottomContCreate
+    bottomContCreate(ui.cont);
 
     // topContCreate
     topContCreate(ui.cont);
@@ -51,6 +22,7 @@ void View::create(Operations &opts)
     // 添加事件回调函数
     AttachEvent(lv_scr_act());
     lv_obj_add_event_cb(ui.topCont.cancelBtn, buttonEventHandler, LV_EVENT_ALL, this);
+    lv_obj_add_event_cb(ui.bottomCont.barBtn, buttonEventHandler, LV_EVENT_ALL, this);
 
     /* Transparent background style */
     static lv_style_t style_scr_act;
@@ -76,6 +48,7 @@ void View::create(Operations &opts)
     // 动画的创建
     ui.anim_timeline = lv_anim_timeline_create();
     ui.anim_timelineTop = lv_anim_timeline_create();
+    ui.anim_timelineBottom = lv_anim_timeline_create();
 
 #define ANIM_DEF(start_time, obj, attr, start, end) \
     {start_time, obj, LV_ANIM_EXEC(attr), start, end, 500, lv_anim_path_ease_out, true}
@@ -85,15 +58,28 @@ void View::create(Operations &opts)
 
     lv_anim_timeline_wrapper_t wrapperTop[] =
         {
-            ANIM_DEF(0, ui.topCont.cont, y, -40, lv_obj_get_x_aligned(ui.topCont.cont)),
+            ANIM_DEF(0, ui.topCont.cont, y, -40, lv_obj_get_y_aligned(ui.topCont.cont)),
             ANIM_DEF(0, ui.topCont.cont, width, 20, lv_obj_get_width(ui.topCont.cont)),
 
             LV_ANIM_TIMELINE_WRAPPER_END // 这个标志着结构体成员结束，不能省略，在下面函数lv_anim_timeline_add_wrapper的轮询中做判断条件
         };
     lv_anim_timeline_add_wrapper(ui.anim_timelineTop, wrapperTop);
 
+    lv_anim_timeline_wrapper_t wrapperBottom[] =
+        {
+            ANIM_DEF(0, ui.bottomCont.cont, y, lv_obj_get_y_aligned(ui.bottomCont.cont), -100),
+            ANIM_DEF(50, ui.bottomCont.cont, height, lv_obj_get_height(ui.bottomCont.cont), 240),
+            ANIM_DEF(100, ui.bottomCont.cont, opa_scale, LV_OPA_TRANSP, LV_OPA_80),
+            ANIM_DEF(0, ui.bottomCont.barBtn, opa_scale, LV_OPA_COVER, LV_OPA_TRANSP),
+            ANIM_DEF(0, ui.bottomCont.barBtn, width, lv_obj_get_width(ui.bottomCont.barBtn), 0),
+
+            LV_ANIM_TIMELINE_WRAPPER_END // 这个标志着结构体成员结束，不能省略，在下面函数lv_anim_timeline_add_wrapper的轮询中做判断条件
+        };
+    lv_anim_timeline_add_wrapper(ui.anim_timelineBottom, wrapperBottom);
+
     // 开始动画
     appearAnimTop();
+    appearAnimBottom();
 }
 
 void View::release()
@@ -107,6 +93,11 @@ void View::release()
     {
         lv_anim_timeline_del(ui.anim_timelineTop);
         ui.anim_timelineTop = nullptr;
+    }
+    if (ui.anim_timelineBottom)
+    {
+        lv_anim_timeline_del(ui.anim_timelineBottom);
+        ui.anim_timelineBottom = nullptr;
     }
     // 移除屏幕手势回调函数
     lv_obj_remove_event_cb(lv_scr_act(), onEvent);
@@ -124,6 +115,14 @@ void View::appearAnimTop(bool reverse) // topCont动画
     lv_anim_timeline_start(ui.anim_timelineTop);
 
     ui.isTopContCollapsed = reverse;
+}
+
+void View::appearAnimBottom(bool reverse) // bottomCont动画
+{
+    lv_anim_timeline_set_reverse(ui.anim_timelineBottom, reverse);
+    lv_anim_timeline_start(ui.anim_timelineBottom);
+
+    ui.isBottomContCollapsed = reverse;
 }
 
 void View::AttachEvent(lv_obj_t *obj)
@@ -162,91 +161,34 @@ void View::contCreate(lv_obj_t *obj)
     ui.cont = cont;
 
     // 设置图片
-    lv_obj_t *img = lv_img_create(obj);
-    lv_obj_remove_style_all(img);
-    lv_obj_clear_flag(img, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_bg_opa(img, LV_OPA_TRANSP, 0);
-    lv_img_set_src(img, "S:./picture/icon/bootlogo.bin");
-    lv_obj_align(img, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
+    // lv_obj_t *img = lv_img_create(obj);
+    // lv_obj_remove_style_all(img);
+    // lv_obj_clear_flag(img, LV_OBJ_FLAG_SCROLLABLE);
+    // lv_obj_set_style_bg_opa(img, LV_OPA_TRANSP, 0);
+    // lv_img_set_src(img, "S:./picture/icon/bootlogo.bin");
+    // lv_obj_align(img, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
 
-    ui.image = img;
+    // ui.image = img;
 }
 
-/**
- * Callback which draws the blocks of colour under the lines
- **/
-static void draw_event_cb(lv_event_t *e)
+void View::bottomContCreate(lv_obj_t *obj)
 {
-    lv_obj_t *obj = lv_event_get_target(e);
+    lv_obj_t *cont = lv_obj_create(obj);
+    lv_obj_remove_style_all(cont);
+    lv_obj_set_size(cont, lv_pct(90), lv_pct(8));
+    lv_obj_clear_flag(cont, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_opa(cont, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_bg_color(cont, lv_color_hex(0xeeeeee), 0);
+    lv_obj_align(cont, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_set_style_radius(cont, 12, LV_PART_MAIN);
+    ui.bottomCont.cont = cont;
 
-    /*Add the faded area before the lines are drawn*/
-    lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(e);
-    if (dsc->part == LV_PART_ITEMS)
-    {
-        if (!dsc->p1 || !dsc->p2)
-            return;
-
-        /*Add a line mask that keeps the area below the line*/
-        lv_draw_mask_line_param_t line_mask_param;
-        lv_draw_mask_line_points_init(&line_mask_param, dsc->p1->x, dsc->p1->y, dsc->p2->x, dsc->p2->y,
-                                      LV_DRAW_MASK_LINE_SIDE_BOTTOM);
-        int16_t line_mask_id = lv_draw_mask_add(&line_mask_param, NULL);
-
-        /*Draw a rectangle that will be affected by the mask*/
-        lv_draw_rect_dsc_t draw_rect_dsc;
-        lv_draw_rect_dsc_init(&draw_rect_dsc);
-        draw_rect_dsc.bg_opa = LV_OPA_COVER;
-        draw_rect_dsc.bg_color = dsc->line_dsc->color;
-
-        lv_area_t a;
-        a.x1 = dsc->p1->x;
-        a.x2 = dsc->p2->x;
-        a.y1 = LV_MIN(dsc->p1->y, dsc->p2->y);
-        a.y2 = obj->coords.y2 -
-               13; /* -13 cuts off where the rectangle draws over the chart margin. Without this an area of 0 doesn't look like 0 */
-        lv_draw_rect(dsc->draw_ctx, &draw_rect_dsc, &a);
-
-        /*Remove the mask*/
-        lv_draw_mask_free_param(&line_mask_param);
-        lv_draw_mask_remove_id(line_mask_id);
-    }
-}
-
-void View::chartContCreate(lv_obj_t *obj)
-{
-    // Wave transition
-    transition.getYTransition().setDuration(600);
-    transition.getYTransition().setTransitionPath(EasingPath::easeOutBack);
-
-    // Wave gen
-    wave_generator.init(240);
-
-    stacked_area_chart.obj = lv_chart_create(obj);
-    lv_obj_set_size(stacked_area_chart.obj, 240, 240);
-    lv_obj_center(stacked_area_chart.obj);
-    lv_chart_set_type(stacked_area_chart.obj, LV_CHART_TYPE_LINE);
-
-    // 关闭网格线
-    lv_chart_set_div_line_count(stacked_area_chart.obj, 0, 0);
-
-    // // 关闭Y/X轴刻度和标签
-    // lv_chart_set_axis_tick(stacked_area_chart.obj, LV_CHART_AXIS_PRIMARY_Y, 0, 0, 0, 0, false, 0);
-    // lv_chart_set_axis_tick(stacked_area_chart.obj, LV_CHART_AXIS_PRIMARY_X, 0, 0, 0, 0, false, 0);
-    // // 关闭点显示
-    // lv_obj_set_style_size(stacked_area_chart.obj, 0, LV_PART_INDICATOR);
-
-    // 填充波浪下方区域，颜色加深且不透明
-    lv_obj_set_style_opa(stacked_area_chart.obj, LV_OPA_60, LV_PART_ITEMS);
-    lv_obj_set_style_bg_opa(stacked_area_chart.obj, LV_OPA_60, LV_PART_ITEMS);
-    lv_obj_set_style_bg_color(stacked_area_chart.obj, lv_color_hex(0x003366), LV_PART_ITEMS);
-    // 只用一条series
-    stacked_area_chart.series_list[0] = lv_chart_add_series(stacked_area_chart.obj, lv_palette_main(LV_PALETTE_BLUE), LV_CHART_AXIS_PRIMARY_Y);
-    lv_chart_set_point_count(stacked_area_chart.obj, 215);
-
-    // set sine wave data
-    lv_timer_create(wave_timer_cb, 10, this);
-    // fill under the lines
-    lv_obj_add_event_cb(stacked_area_chart.obj, draw_event_cb, LV_EVENT_DRAW_PART_BEGIN, NULL);
+    lv_obj_t *btn = btnCreate(cont, nullptr, 0, 0, 240, 15);
+    lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -5);
+    lv_obj_set_style_bg_color(btn, lv_color_hex(0x222222), 0);                // 设置按钮默认的颜色
+    lv_obj_set_style_bg_color(btn, lv_color_hex(0x282a3a), LV_STATE_PRESSED); // 设置按钮在被按下时的颜色
+    lv_obj_set_style_bg_color(btn, lv_color_hex(0x282a3a), LV_STATE_FOCUSED); // 设置按钮在被按下时的颜色
+    ui.bottomCont.barBtn = btn;
 }
 
 void View::topContCreate(lv_obj_t *obj)
@@ -362,6 +304,23 @@ void View::buttonEventHandler(lv_event_t *event)
         {
             instance->_opts.exitCb();
         }
+        else if (obj == instance->ui.bottomCont.barBtn)
+        {
+            printf("[View] bottomCont barBtn clicked!\n");
+        }
+    }
+    else if (code == LV_EVENT_LONG_PRESSED)
+    {
+        if (obj == instance->ui.bottomCont.barBtn)
+        {
+            printf("[View] bottomCont barBtn long pressed!\n");
+            if (instance->ui.isBottomContCollapsed)
+            {
+                instance->appearAnimBottom(false);
+
+                // lv_obj_add_flag(instance->ui.bottomCont.barBtn, LV_OBJ_FLAG_HIDDEN);
+            }
+        }
     }
 }
 
@@ -398,6 +357,11 @@ void View::onEvent(lv_event_t *event)
                 if (instance->ui.isTopContCollapsed)
                     instance->appearAnimTop(false);
 
+                if (!instance->ui.isBottomContCollapsed)
+                {
+                    instance->appearAnimBottom(true);
+                    // lv_obj_clear_flag(instance->ui.bottomCont.barBtn, LV_OBJ_FLAG_HIDDEN);
+                }
                 // instance->_opts.exitCb();
                 break;
 

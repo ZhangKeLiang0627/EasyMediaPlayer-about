@@ -4,7 +4,7 @@
 #include "../utils/lv_ext/lv_obj_ext_func.h"
 #include "../utils/lv_ext/lv_anim_timeline_wrapper.h"
 #include <functional>
-#include "../utils/smooth_ui_toolkit/src/smooth_ui_toolkit.h"
+// #include "../utils/smooth_ui_toolkit/src/smooth_ui_toolkit.h"
 
 namespace Page
 {
@@ -37,12 +37,6 @@ namespace Page
         SetFullScreenCb setFullScreenCb; // 设置视频是否全屏回调函数
     };
 
-    typedef struct
-    {
-        lv_obj_t *obj;
-        lv_chart_series_t *series_list[3];
-    } stacked_area_chart_t;
-
     class View
     {
     private:
@@ -50,13 +44,6 @@ namespace Page
         bool _isPlaying = false;
 
     public:
-        SmoothUIToolKit::Transition3D transition;
-        SmoothUIToolKit::Misc::WaterWaveGenerator wave_generator;
-
-        stacked_area_chart_t stacked_area_chart;
-
-        uint32_t currentTime = 0;
-
         struct
         {
             lv_obj_t *cont;
@@ -79,23 +66,34 @@ namespace Page
                 lv_obj_t *lockLabel;      // to show the lock screen label
             } topCont;
 
+            struct
+            {
+                lv_obj_t *cont;
+                lv_obj_t *barBtn;
+
+                lv_obj_t *logoImage;
+
+            } bottomCont;
+
             lv_anim_timeline_t *anim_timeline;
             lv_anim_timeline_t *anim_timelineTop;
+            lv_anim_timeline_t *anim_timelineBottom;
 
             bool isTopContCollapsed = false;
+            bool isBottomContCollapsed = false;
         } ui;
 
         void create(Operations &opts);
         void release(void);
         void appearAnimStart(bool reverse = false);
         void appearAnimTop(bool reverse = false);
+        void appearAnimBottom(bool reverse = false);
 
     private:
         void AttachEvent(lv_obj_t *obj);
 
         void contCreate(lv_obj_t *obj);
-        void chartContCreate(lv_obj_t *obj);
-
+        void bottomContCreate(lv_obj_t *obj);
         void topContCreate(lv_obj_t *obj);
         void fontCreate(void);
 
