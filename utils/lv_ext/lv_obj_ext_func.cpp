@@ -42,6 +42,11 @@ void lv_obj_set_shadow_opa_scale(lv_obj_t *obj, int16_t opa)
     lv_obj_set_style_shadow_opa(obj, (lv_opa_t)opa, LV_PART_MAIN);
 }
 
+void lv_obj_set_border_opa_scale(lv_obj_t *obj, int16_t opa)
+{
+    lv_obj_set_style_border_opa(obj, (lv_opa_t)opa, LV_PART_MAIN);
+}
+
 void lv_label_set_opa_scale(lv_obj_t *obj, int16_t opa)
 {
     lv_obj_set_style_text_opa(obj, (lv_opa_t)opa, 0);

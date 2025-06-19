@@ -72,6 +72,7 @@ namespace Page
                 lv_obj_t *barBtn;
                 lv_obj_t *showBtn;
 
+                lv_obj_t *qrCode;
                 lv_obj_t *logoImage;
                 lv_obj_t *objectionImage;
 

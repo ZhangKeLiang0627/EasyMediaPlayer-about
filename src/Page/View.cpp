@@ -74,6 +74,8 @@ void View::create(Operations &opts)
             ANIM_DEF(100, ui.bottomCont.cont, opa_scale, LV_OPA_TRANSP, LV_OPA_80),
             ANIM_DEF(0, ui.bottomCont.barBtn, opa_scale, LV_OPA_COVER, LV_OPA_TRANSP),
             ANIM_DEF(0, ui.bottomCont.showBtn, bg_img_opa_scale, LV_OPA_TRANSP, LV_OPA_COVER),
+            ANIM_DEF(0, ui.bottomCont.qrCode, img_opa_scale, LV_OPA_TRANSP, LV_OPA_COVER),
+            ANIM_DEF(0, ui.bottomCont.qrCode, border_opa_scale, LV_OPA_TRANSP, LV_OPA_COVER),
             ANIM_DEF(0, ui.bottomCont.barBtn, width, lv_obj_get_width(ui.bottomCont.barBtn), 0),
 
             LV_ANIM_TIMELINE_WRAPPER_END // 这个标志着结构体成员结束，不能省略，在下面函数lv_anim_timeline_add_wrapper的轮询中做判断条件
@@ -209,13 +211,27 @@ void View::bottomContCreate(lv_obj_t *obj)
     lv_obj_t *logoImage = lv_obj_create(cont);
     lv_obj_remove_style_all(logoImage);
     lv_obj_clear_flag(logoImage, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_bg_opa(logoImage, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_bg_opa(logoImage, LV_OPA_80, 0);
     lv_obj_set_style_bg_img_opa(logoImage, LV_OPA_COVER, 0);
     lv_obj_add_flag(logoImage, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_style_bg_img_src(logoImage, ResourcePool::GetImage("bootlogo"), LV_STATE_DEFAULT);
-    lv_obj_align(logoImage, LV_ALIGN_CENTER, 20, -40);
+    lv_obj_align(logoImage, LV_ALIGN_CENTER, 5, -40);
     // lv_obj_set_style_radius(logoImage, 5, LV_PART_MAIN);
     ui.bottomCont.logoImage = logoImage;
+
+    // 设置QRCode
+    lv_color_t bg_color = lv_palette_lighten(LV_PALETTE_DEEP_PURPLE, 5);
+    lv_color_t fg_color = lv_palette_darken(LV_PALETTE_PURPLE, 4);
+    lv_obj_t *qr = lv_qrcode_create(cont, 120, fg_color, bg_color);
+    /*Set data*/
+    const char *data = "https://github.com/ZhangKeLiang0627";
+    lv_qrcode_update(qr, data, strlen(data));
+    lv_obj_center(qr);
+    lv_obj_align(qr, LV_ALIGN_RIGHT_MID, -15, -40);
+    /*Add a border with bg_color*/
+    lv_obj_set_style_border_color(qr, bg_color, 0);
+    lv_obj_set_style_border_width(qr, 5, 0);
+    ui.bottomCont.qrCode = qr;
 
     // 设置objectionImage
     lv_obj_t *image = lv_obj_create(cont);
