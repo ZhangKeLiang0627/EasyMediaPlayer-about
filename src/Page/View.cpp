@@ -219,6 +219,26 @@ void View::bottomContCreate(lv_obj_t *obj)
     // lv_obj_set_style_radius(logoImage, 5, LV_PART_MAIN);
     ui.bottomCont.logoImage = logoImage;
 
+    // 设置label
+    lv_obj_t *labelCont = lv_obj_create(cont);
+    lv_obj_remove_style_all(labelCont);
+    lv_obj_set_size(labelCont, 260, 60);
+    lv_obj_clear_flag(labelCont, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_opa(labelCont, LV_OPA_80, 0);
+    lv_obj_set_style_bg_color(labelCont, lv_color_hex(0x97cef9), 0); // #97cef9
+    lv_obj_align(labelCont, LV_ALIGN_BOTTOM_RIGHT, -15, -20);
+    lv_obj_set_style_radius(labelCont, 6, LV_PART_MAIN);
+    ui.bottomCont.labelCont = labelCont;
+
+    lv_obj_t *label = lv_label_create(labelCont);
+    lv_obj_remove_style_all(label);
+    lv_obj_set_style_text_font(label, ui.fontCont.font20.font, LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(label, lv_color_black(), 0);
+    lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    lv_label_set_text_fmt(label, "%s", "<-Click！没错，是我是我，就是我！");
+    ui.bottomCont.label = label;
+
     // 设置QRCode
     lv_color_t bg_color = lv_palette_lighten(LV_PALETTE_DEEP_PURPLE, 5);
     lv_color_t fg_color = lv_palette_darken(LV_PALETTE_PURPLE, 4);
