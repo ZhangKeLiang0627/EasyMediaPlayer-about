@@ -76,6 +76,7 @@ void View::create(Operations &opts)
             ANIM_DEF(0, ui.bottomCont.showBtn, bg_img_opa_scale, LV_OPA_TRANSP, LV_OPA_COVER),
             ANIM_DEF(0, ui.bottomCont.qrCode, img_opa_scale, LV_OPA_TRANSP, LV_OPA_COVER),
             ANIM_DEF(0, ui.bottomCont.qrCode, border_opa_scale, LV_OPA_TRANSP, LV_OPA_COVER),
+            ANIM_DEF(0, ui.bottomCont.labelCont, opa_scale, LV_OPA_TRANSP, LV_OPA_COVER),
             ANIM_DEF(0, ui.bottomCont.barBtn, width, lv_obj_get_width(ui.bottomCont.barBtn), 0),
 
             LV_ANIM_TIMELINE_WRAPPER_END // 这个标志着结构体成员结束，不能省略，在下面函数lv_anim_timeline_add_wrapper的轮询中做判断条件
